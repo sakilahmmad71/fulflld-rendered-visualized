@@ -1,46 +1,50 @@
-import React, { Children, FC, useState } from "react";
-import "./App.css";
-import { List } from "./components/List";
-import { useDictionary } from "./hooks/useDictionary";
+import React, { ChangeEvent, useEffect, useState } from 'react';
 
-/**
- * Can be added throatling and debouncing depending on the search feature requirements
- */
+import './App.css';
+import Header from './components/Header';
+import { VirtualizedList } from './components/List';
+import Search from './components/Search';
+import useDebounce from './hooks/useDebounce';
+import { useDictionary } from './hooks/useDictionary';
 
 function App() {
-  const [search, setSearch] = useState("");
-  const dictionary = useDictionary();
+	const [items, setItems] = useState([]);
+	const [search, setSearch] = useState('');
 
-  const handleSearchItems = (event: React.ChangeEvent<HTMLInputElement>) => {
-    setSearch(event.target.value);
-    // search functionality will be there
-  };
+	const debouncedValue = useDebounce<string>(search, 300);
+	const dictionary = useDictionary();
 
-  return (
-    <div className="app">
-      <div className="header">
-        <div>Render Virtualized</div>
-      </div>
+	useEffect(() => {
+		if (dictionary) {
+			setItems(dictionary);
+		}
 
-      <div className="search">
-        <input
-          placeholder="Search for"
-          value={search}
-          onChange={handleSearchItems}
-          className="input"
-          type="text"
-        />
-      </div>
+		return () => setItems([]);
+	}, [dictionary]);
 
-      <div className="content">
-        <List items={dictionary} />
-      </div>
+	useEffect(() => {
+		/**
+		 * Can be search in different ways like endsWith, contains
+		 */
 
-      {/* <div className="content">
-        <ListWithVirtualized items={dictionary} />
-      </div> */}
-    </div>
-  );
+		if (debouncedValue) {
+			const foundItems = items.filter((item) => item.startsWith(debouncedValue));
+			setItems(foundItems);
+		} else {
+			setItems(dictionary);
+		}
+	}, [debouncedValue]);
+
+	return (
+		<div className='app'>
+			<Header />
+			<Search searchText={search} setSearchText={setSearch} />
+
+			<div className='content'>
+				<VirtualizedList items={items} />
+			</div>
+		</div>
+	);
 }
 
 export default App;
